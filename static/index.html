@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>MongoDB on-prem · Search, Geo e Queryable Encryption</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/leaflet/leaflet.css">
+<script src="/static/leaflet/leaflet.js"></script>
+<style>
+:root{--slate:#001E2B;--green:#00ED64;--forest:#00684A;--mint:#E3FCF7;--gray:#5C6C75;--line:#E1E7E5;--bg:#F7F9F8;--blue:#016BF8;--red:#DB3030;--amber:#FFC010}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--slate);font-size:15px}
+header{background:var(--slate);color:#fff;padding:14px 28px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+header h1{font-size:19px;margin:0;font-weight:600}
+header h1 span{color:var(--green)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.chip{font-size:12px;padding:4px 10px;border-radius:20px;background:#0b3443;color:#cfe;white-space:nowrap}
+.chip.ok{background:#00422e;color:var(--green)} .chip.ko{background:#4a1515;color:#ffb3b3}
+nav{background:#fff;border-bottom:1px solid var(--line);padding:0 20px;display:flex;gap:4px;position:sticky;top:0;z-index:1000}
+nav button{border:0;background:none;padding:14px 16px;font-size:15px;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;font-weight:500}
+nav button.on{color:var(--slate);border-bottom-color:var(--green)}
+main{display:flex;min-height:calc(100vh - 110px)}
+aside{width:260px;background:#fff;border-right:1px solid var(--line);padding:16px 0;flex-shrink:0}
+aside button{display:flex;gap:10px;width:100%;text-align:left;border:0;background:none;padding:10px 18px;cursor:pointer;font-size:14px;color:var(--slate);line-height:1.3}
+aside button b{background:var(--mint);color:var(--forest);border-radius:50%;width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px}
+aside button.on{background:var(--mint)} aside button.on b{background:var(--forest);color:#fff}
+section{flex:1;padding:24px 32px;max-width:1500px;min-width:0}
+h2{margin:0 0 4px;font-size:24px} .sub{color:var(--forest);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.spieg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:16px 0}
+.box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.box h4{margin:0 0 6px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--forest)}
+.box.os{border-color:#f3c4c4;background:#fff8f8} .box.os h4{color:var(--red);font-size:12px} .box p{margin:0;line-height:1.45}
+.esempi{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--gray)}
+.esempi button{border:1px solid var(--forest);background:var(--mint);color:var(--forest);border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px}
+label.cb{flex-direction:row;align-items:center;gap:8px;font-size:14px;color:var(--slate)}
+.drawctl{background:#fff;padding:8px;border-radius:8px;box-shadow:0 1px 6px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:6px;font-size:13px}
+.drawctl button{border:1px solid #c5d0cc;background:#fff;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;text-align:left}
+.drawctl button.primario{background:var(--forest);color:#fff;border-color:var(--forest)}
+.drawctl button.attivo{background:var(--amber);border-color:var(--amber);color:var(--slate)}
+.drawctl .msg{max-width:200px;color:var(--slate);font-weight:600}
+.disegno .leaflet-container{cursor:crosshair!important}
+.docs>div,.tabelle>div{min-width:0}
+pre .add{display:block;background:#4d3f00;color:#ffe066;border-left:3px solid #ffe066;margin-left:-14px;padding-left:11px}
+.arch{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin:16px 0}
+.qe{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:16px 0}
+.qe h3{margin:0 0 10px} .qe ol{margin:0;padding-left:20px;line-height:1.55} .qe li{margin-bottom:6px}
+.qe table{margin-top:8px} .qe .prod{background:var(--mint);border-radius:8px;padding:10px 14px;margin-top:10px;line-height:1.5}
+.imbuto{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:12px 0}
+.imbuto h4{margin:0 0 10px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--forest)}
+.ib{display:grid;grid-template-columns:330px 1fr 70px;gap:10px;align-items:center;margin:5px 0;font-size:14px}
+.ib .bar{height:22px;background:var(--mint);border-radius:4px;overflow:hidden}
+.ib .bar i{display:block;height:100%;background:var(--forest);border-radius:4px;min-width:3px}
+.ib:last-child .bar i{background:var(--red)} .ib b{text-align:right}
+.schede{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;margin:12px 0}
+.scheda{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.scheda.top{border:2px solid var(--red)}
+.scheda h3{margin:0;font-size:17px;display:flex;justify-content:space-between;gap:10px}
+.scheda h3 span{background:var(--slate);color:var(--green);border-radius:12px;padding:2px 10px;font-size:13px;white-space:nowrap}
+.scheda.top h3 span{background:var(--red);color:#fff}
+.scheda .sub{text-transform:none;letter-spacing:0;font-weight:400;color:var(--gray);font-size:13px;margin:4px 0 10px}
+.scheda ul{list-style:none;padding:0;margin:0 0 10px} .scheda li{padding:3px 0;font-size:14px}
+.scheda li.ok::before{content:"✔ ";color:var(--forest);font-weight:700} .scheda li.no{color:#9aa5a1} .scheda li.no::before{content:"✗ ";font-weight:700}
+.fasc{background:#fff8e1;border:1px dashed #E0A800;border-radius:8px;padding:8px 12px;font-size:13px}
+.fasc .t{font-weight:700;color:#8a6d00;margin-bottom:4px} .fasc table{border:0;background:none} .fasc td{border:0;padding:2px 8px 2px 0;background:none!important}
+.scena{background:var(--slate);color:#fff;border-radius:10px;padding:16px 20px;margin:0 0 16px;font-size:18px;font-style:italic;line-height:1.45}
+.scena b{display:block;font-style:normal;font-size:11px;letter-spacing:1px;color:var(--green);margin-bottom:6px}
+.extra{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin:16px 0;line-height:1.55}
+.extra h3{margin:0 0 10px;font-size:17px;color:var(--forest)} .extra li{margin-bottom:6px}
+.extra pre{max-height:none} .extra table{margin:10px 0}
+.lavoro.facet{grid-template-columns:270px 1fr}
+.fgr{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.fgr h5{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--forest)}
+.fgr label{flex-direction:row;align-items:center;gap:8px;font-size:14px;font-weight:400;color:var(--slate);padding:3px 0;cursor:pointer}
+.fgr label.on{font-weight:700}
+.fgr label .cnt{margin-left:auto;background:var(--mint);color:var(--forest);border-radius:10px;padding:1px 8px;font-size:12px;font-weight:700}
+.fgr label.zero{color:#aab4b0} .fgr label.zero .cnt{background:#f0f2f1;color:#aab4b0}
+.azzera{width:100%;margin-bottom:12px}
+.lavoro{display:grid;grid-template-columns:minmax(320px,1fr) minmax(380px,1.3fr);gap:18px;align-items:start}
+.lavoro.nomap{grid-template-columns:1fr}
+form{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--gray);font-weight:600}
+input[type=text],input[type=number],select{font-size:15px;padding:8px 10px;border:1px solid #c5d0cc;border-radius:6px;min-width:180px;color:var(--slate)}
+input.grande{font-size:20px;min-width:300px}
+input[type=range]{width:200px}
+.run{background:var(--forest);color:#fff;border:0;border-radius:6px;padding:10px 22px;font-size:15px;font-weight:600;cursor:pointer}
+.run:hover{background:#004d36}
+.btn2{background:#fff;border:1px solid #c5d0cc;border-radius:6px;padding:7px 12px;font-size:13px;cursor:pointer}
+.btn2.attivo{background:var(--amber);border-color:var(--amber)}
+.mappa{height:460px;border-radius:10px;border:1px solid var(--line)}
+.maphint{font-size:12px;color:var(--gray);margin:6px 2px}
+.legenda{display:flex;gap:14px;font-size:12px;margin:6px 2px}
+.legenda i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.metriche{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0 10px}
+.met{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 16px;min-width:150px}
+.met .v{font-size:28px;font-weight:700;color:var(--forest)} .met .l{font-size:12px;color:var(--gray)} .met .n{font-size:11px;color:var(--gray)}
+.met.tempo .v{color:var(--blue)}
+.evid{background:var(--slate);color:#fff;border-radius:10px;padding:12px 16px;margin:10px 0;line-height:1.45}
+.evid b{color:var(--green);margin-right:6px}
+.err{background:#fde8e8;color:#8a1c1c;border-radius:10px;padding:12px 16px;margin:10px 0}
+table{border-collapse:collapse;width:100%;background:#fff;font-size:13px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+th{background:var(--forest);color:#fff;text-align:left;padding:7px 10px;font-weight:600;white-space:nowrap}
+td{padding:6px 10px;border-top:1px solid var(--line)}
+tr:nth-child(even) td{background:#fbfcfc}
+mark{background:#ffe066;padding:0 2px;border-radius:3px}
+.tab-t{margin:18px 0 6px;font-weight:600;font-size:14px}
+.tabelle{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px}
+details{margin-top:16px} summary{cursor:pointer;font-weight:600;color:var(--forest)}
+pre{background:var(--slate);color:#b8f5cf;border-radius:10px;padding:14px;font-size:12.5px;overflow:auto;max-height:520px;margin:8px 0;line-height:1.45}
+pre .k{color:#9fd3ff} pre .s{color:#b8f5cf} pre .n{color:#ffd479} pre .enc{background:#7a1f1f;color:#ffd1d1;border-radius:3px;padding:0 3px}
+.docs{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px}
+.docs .nota{font-size:13px;color:var(--gray);margin:4px 0}
+.vuoto{color:var(--gray);font-style:italic;margin-top:16px}
+.pan{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0}
+.ent{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px}
+.ent.mid{background:var(--forest);color:#fff} .ent h3{margin:0 0 8px}
+.big{font-size:34px;font-weight:700;color:var(--forest)}
+.flow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:s .7s linear infinite;vertical-align:middle;margin-left:8px}
+@keyframes s{to{transform:rotate(360deg)}}
+.numero{background:var(--forest);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid #fff}
+</style>
+</head>
+<body>
+<header>
+  <h1>MongoDB <span>on-prem</span> · Search, Geo e Queryable Encryption</h1>
+  <div class="chips" id="chips"><span class="chip">connessione…</span></div>
+</header>
+<nav id="nav"></nav>
+<main id="main"></main>
+
+<script>
+const S = {tab: "panoramica", passi: [], tabs: [], opzioni: {}, stato: {}, corrente: {}};
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const fmt = n => typeof n === "number" ? n.toLocaleString("it-IT") : (typeof n === "string" && /^\d{4,}$/.test(n) ? Number(n).toLocaleString("it-IT") : n);
+
+async function get(u) { const r = await fetch(u); return r.json(); }
+
+// ---------------- avvio ----------------
+(async () => {
+  const [p, st] = await Promise.all([get("/api/passi"), get("/api/stato")]);
+  S.passi = p.passi; S.tabs = p.tab; S.stato = st;
+  try { S.opzioni = await get("/api/opzioni"); } catch (e) {}
+  chips(); navbar(); render();
+})();
+
+function chips() {
+  const s = S.stato, c = [];
+  if (s.errore) c.push(`<span class="chip ko">Connessione: ${esc(s.errore).slice(0, 80)}</span>`);
+  else {
+    c.push(`<span class="chip ok">MongoDB ${esc(s.versione)} ${s.enterprise ? "Enterprise" : ""}</span>`);
+    c.push(`<span class="chip ${s.search ? "ok" : "ko"}">MongoDB Search ${s.search ? "attivo" : "non pronto"}</span>`);
+    c.push(`<span class="chip ${s.qe_lib ? "ok" : "ko"}">Queryable Encryption ${s.qe_lib ? "pronto" : "libreria mancante"}</span>`);
+  }
+  $("#chips").innerHTML = c.join("");
+}
+
+function navbar() {
+  $("#nav").innerHTML = S.tabs.map(([k, l]) => `<button data-t="${k}" class="${k === S.tab ? "on" : ""}">${l}</button>`).join("");
+  $("#nav").querySelectorAll("button").forEach(b => b.onclick = () => { S.tab = b.dataset.t; navbar(); render(); });
+}
+
+function render() {
+  if (S.tab === "panoramica") return panoramica();
+  const passi = S.passi.filter(p => p.tab === S.tab);
+  const id = S.corrente[S.tab] || passi[0].id;
+  $("#main").innerHTML = `<aside>${passi.map(p => `<button data-id="${p.id}" class="${p.id === id ? "on" : ""}"><b>${p.id}</b><span>${esc(p.titolo)}</span></button>`).join("")}</aside><section id="sec"></section>`;
+  $("#main").querySelectorAll("aside button").forEach(b => b.onclick = () => { S.corrente[S.tab] = b.dataset.id; render(); });
+  passo(passi.find(p => p.id === id));
+}
+
+// ---------------- panoramica ----------------
+async function panoramica() {
+  const c = S.stato.conteggi || {};
+  $("#main").innerHTML = `<section>
+    <div class="sub">Panoramica</div><h2>Lo stesso modello dati di oggi, un solo sistema</h2>
+    <div class="pan">
+      <div class="ent"><h3>PersonaFisica</h3><div class="big">${fmt(c.personaFisica ?? "-")}</div>
+        <p>nome, cognome, codice fiscale…<br><b>luogoResidenza embedded</b>: solo la residenza attuale</p></div>
+      <div class="ent mid"><h3>Relazione</h3><div class="big" style="color:var(--green)">${fmt(c.relazione ?? "-")}</div>
+        <p>Ogni relazione collega <b>una persona</b> (campo idEntita1) a <b>un luogo</b> (campo idEntita2) e dice di che tipo è il legame:
+        <b>Residente</b> (ci abita o ci ha abitato), <b>Domicilio</b>, <b>Frequenta</b> (bar, circoli…).
+        Ha una data di inizio e, se il legame è finito, una data di fine: così si distingue la residenza attuale da quelle passate.</p></div>
+      <div class="ent"><h3>Luogo</h3><div class="big">${fmt(c.luogo ?? "-")}</div>
+        <p>indirizzo, città, CAP…<br><b>n luoghi per persona</b>, collegati dalle relazioni</p></div>
+    </div>
+    <div class="spieg">
+      <div class="box"><h4>Come è costruita la base dati</h4><p>Dati sintetici su Genova (15 quartieri), con un modello a entità e relazioni: persone, luoghi e legami tra loro. Ogni persona ha la residenza attuale embedded, 0–2 residenze/domicili passati e 0–2 luoghi frequentati condivisi (bar, circoli…). La persona di riferimento della demo è "Biagio Amalfi – Via Acquarone 5".</p></div>
+      <div class="box"><h4>Le coordinate</h4><p>Le coordinate di ogni luogo sono nel campo <code>geoJson</code>, come GeoJSON Point. Attenzione all'ordine: <b>[longitudine, latitudine]</b>, il contrario della stringa "lat,lon" di OpenSearch.</p></div>
+      <div class="box"><h4>Cosa trovate nei tab</h4><p><b>Full text</b> e <b>Geo</b>: quello che oggi fa OpenSearch. <b>Testo + Geo</b>: le due cose insieme. <b>Relazioni</b>: domande che oggi non si possono fare. <b>Queryable Encryption</b>: dati sensibili cifrati e interrogabili (${fmt(c.personaFisicaQE ?? "-")} persone cifrate).</p></div>
+    </div>
+    <div class="tab-t">L'architettura della demo</div>
+    <div class="arch">${architettura()}</div>
+    <div class="qe">
+      <h3>Come è costruita la parte Queryable Encryption</h3>
+      <ol>
+        <li><b>Chiavi dei campi.</b> Nel database c'è un archivio di chiavi (collection <code>encryption.__keyVault</code>) con
+          <b>${fmt(S.stato.chiavi ?? "-")} chiavi dati</b>, una per ogni campo cifrato. Sono a loro volta cifrate: da sole non servono a niente.</li>
+        <li><b>Chiave master.</b> È la chiave che cifra le chiavi dei campi. <b>Oggi, nella demo, è un file locale</b> di 96 byte
+          (<code>master-key.bin</code>) sul portatile: comodo per una demo, non adatto alla produzione.</li>
+        <li><b>Collection cifrata.</b> <code>personaFisicaQE</code> è stata creata dichiarando quali campi cifrare e quali ricerche
+          permettere su ciascuno (tabella sotto). Nome, cognome e residenza restano in chiaro per la ricerca full text e geo.</li>
+        <li><b>Caricamento.</b> ${fmt(c.personaFisicaQE ?? "-")} persone sono state copiate passando dal driver con la cifratura
+          automatica (libreria <code>crypt_shared</code>): <b>il driver cifra prima di inviare</b>, il server riceve e salva solo dati cifrati.</li>
+        <li><b>Nessuna configurazione speciale sul server</b>: le chiavi non arrivano mai al database.</li>
+      </ol>
+      <table><tr><th>Campo</th><th>Ricerca possibile sul dato cifrato</th></tr>
+        <tr><td>codiceFiscale</td><td>uguaglianza esatta</td></tr><tr><td>dataNascita</td><td>intervallo (da… a…)</td></tr>
+        <tr><td>matricolaSidet</td><td>inizia per… / finisce per…</td></tr><tr><td>segniParticolari</td><td>contiene…</td></tr></table>
+      <div class="prod"><b>In produzione:</b> la chiave master non sta in un file ma in un <b>KMS o HSM aziendale</b>, e non esce mai da lì.
+        On-prem si usa il protocollo <b>KMIP</b>, con autenticazione TLS tramite certificati client, verso un qualunque KMS compatibile
+        (ad esempio Thales CipherTrust o HashiCorp Vault). In cloud sono supportati anche AWS KMS, Azure Key Vault e Google Cloud KMS.
+        Per passare dalla demo alla produzione si cambia solo la configurazione del driver: dati, schema e query restano identici.</div>
+    </div>
+    <div class="tab-t">I documenti, letti adesso dal database</div>
+    <div class="docs" id="campioni" style="grid-template-columns:1fr 1fr 1fr"><p class="vuoto">caricamento…</p></div>
+  </section>`;
+  try {
+    const k = await get("/api/campioni");
+    $("#campioni").innerHTML = ["personaFisica", "relazione", "luogo"].map(n =>
+      `<div><div class="tab-t">${n}</div><pre>${jsonHtml(k[n])}</pre></div>`).join("");
+  } catch (e) { $("#campioni").innerHTML = `<div class="err">${esc(e)}</div>`; }
+}
+
+function architettura() {
+  const st = S.stato, hosts = (st.hosts && st.hosts.length ? st.hosts : ["nodo1", "nodo2", "nodo3"]).slice(0, 3);
+  const nodo = (h, i) => {
+    const prim = h === st.primary, x = 395 + i * 150;
+    return `<g><rect x="${x}" y="95" width="130" height="92" rx="12" fill="${prim ? "#00684A" : "#E3FCF7"}" stroke="#00684A" stroke-width="1.5"/>
+      <circle cx="${x + 24}" cy="120" r="9" fill="${prim ? "#00ED64" : "#00684A"}"/>
+      <text x="${x + 40}" y="125" font-size="14" font-weight="700" fill="${prim ? "#fff" : "#001E2B"}">mongod</text>
+      <text x="${x + 14}" y="152" font-size="12" font-weight="700" fill="${prim ? "#00ED64" : "#00684A"}">${prim ? "PRIMARY" : "SECONDARY"}</text>
+      <text x="${x + 14}" y="172" font-size="11" fill="${prim ? "#cfe" : "#5C6C75"}">${esc(h.split(".")[0])}:${esc(h.split(":")[1] || "")}</text></g>`;
+  };
+  return `<svg viewBox="0 0 1240 300" width="100%" style="max-height:330px;font-family:inherit">
+    <defs><marker id="fr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5C6C75"/></marker></defs>
+    <!-- app -->
+    <rect x="10" y="70" width="250" height="140" rx="14" fill="#001E2B"/>
+    <text x="30" y="102" font-size="16" font-weight="700" fill="#00ED64">App di demo</text>
+    <text x="30" y="128" font-size="13" fill="#fff">Python · driver MongoDB</text>
+    <text x="30" y="150" font-size="13" fill="#fff">libreria crypt_shared</text>
+    <text x="30" y="172" font-size="13" fill="#fff">cifra / decifra i campi</text>
+    <text x="30" y="194" font-size="12" fill="#9fb">chiave master: file locale (demo)</text>
+    <!-- kms -->
+    <rect x="10" y="240" width="250" height="50" rx="10" fill="#fff" stroke="#DB3030" stroke-dasharray="6 4" stroke-width="1.5"/>
+    <text x="24" y="261" font-size="13" font-weight="700" fill="#DB3030">KMS / HSM aziendale</text>
+    <text x="24" y="280" font-size="11" fill="#5C6C75">in produzione, via KMIP (TLS)</text>
+    <line x1="135" y1="238" x2="135" y2="213" stroke="#DB3030" stroke-dasharray="4 3" marker-end="url(#fr)"/>
+    <!-- freccia app -> rs -->
+    <line x1="262" y1="140" x2="368" y2="140" stroke="#5C6C75" stroke-width="2" marker-end="url(#fr)"/>
+    <text x="270" y="130" font-size="11" fill="#5C6C75">query MQL (TLS)</text>
+    <text x="270" y="160" font-size="11" fill="#5C6C75">campi sensibili</text>
+    <text x="270" y="174" font-size="11" fill="#5C6C75">già cifrati</text>
+    <!-- replica set -->
+    <rect x="375" y="30" width="490" height="240" rx="16" fill="#F7F9F8" stroke="#00684A" stroke-width="1.5"/>
+    <text x="395" y="60" font-size="15" font-weight="700" fill="#001E2B">Replica set ${esc(st.replicaSet || "")} · MongoDB ${esc(st.versione || "")} Enterprise</text>
+    ${hosts.map(nodo).join("")}
+    <path d="M460,190 C480,232 640,232 660,192" fill="none" stroke="#00684A" stroke-width="1.5" marker-end="url(#fr)"/>
+    <path d="M460,190 C490,252 790,252 810,192" fill="none" stroke="#00684A" stroke-width="1.5" marker-end="url(#fr)"/>
+    <text x="520" y="262" font-size="11" fill="#00684A">replica dei dati dal primary ai secondary (alta affidabilità)</text>
+    <!-- mongot -->
+    <line x1="866" y1="140" x2="972" y2="140" stroke="#5C6C75" stroke-width="2" marker-end="url(#fr)" marker-start="url(#fr)"/>
+    <text x="874" y="116" font-size="11" fill="#5C6C75">$search</text>
+    <text x="874" y="130" font-size="11" fill="#5C6C75">$searchMeta</text>
+    <text x="872" y="160" font-size="11" fill="#5C6C75">indice aggiornato</text>
+    <text x="872" y="174" font-size="11" fill="#5C6C75">via change stream</text>
+    <rect x="975" y="70" width="255" height="140" rx="14" fill="#016BF8"/>
+    <text x="995" y="102" font-size="16" font-weight="700" fill="#fff">MongoDB Search</text>
+    <text x="995" y="126" font-size="14" fill="#fff">nodo mongot</text>
+    <text x="995" y="150" font-size="12" fill="#dbe8ff">full text · autocomplete · geo · facet</text>
+    <text x="995" y="172" font-size="12" fill="#dbe8ff">${st.search ? "● attivo" : "○ non pronto"}</text>
+    <text x="995" y="194" font-size="11" fill="#dbe8ff">gestito dal Kubernetes Operator</text>
+    <text x="375" y="294" font-size="12" fill="#5C6C75">Tutto on-prem: niente cloud, niente OpenSearch, niente pipeline di sincronizzazione.</text>
+  </svg>`;
+}
+
+// ---------------- passo ----------------
+function passo(p) {
+  const geo = p.mappa || p.params.some(x => x.tipo === "punto" || x.tipo === "poligono");
+  const fac = p.params.some(x => x.tipo === "faccette");
+  const val = {};
+  p.params.forEach(x => val[x.nome] = JSON.parse(JSON.stringify(x.default)));
+  const sec = $("#sec");
+  sec.innerHTML = `
+    <div class="sub">${esc(S.tabs.find(t => t[0] === p.tab)[1])} · passo ${p.id}</div><h2>${esc(p.titolo)}</h2>
+    <div class="spieg">
+      <div class="box"><h4>Cosa facciamo</h4><p>${esc(p.cosa)}</p></div>
+      <div class="box"><h4>Perché conta</h4><p>${esc(p.perche)}</p></div>
+      <div class="box os"><h4>In OpenSearch oggi</h4><p>${esc(p.opensearch)}</p></div>
+    </div>
+    ${p.scena ? `<div class="scena"><b>LA SCENA</b>${esc(p.scena)}</div>` : ""}
+    <div class="lavoro ${fac ? "facet" : geo ? "" : "nomap"}">
+      ${fac ? `<div><button type="button" class="btn2 azzera" id="azzera">↺ Azzera tutti i filtri</button><div id="facets"><p class="vuoto">caricamento…</p></div></div>` : ""}
+      <div><form id="f"></form>${p.largo ? "" : '<div id="out"></div>'}</div>
+      ${geo ? `<div><div class="mappa" id="map"></div><div class="maphint" id="hint"></div><div class="legenda" id="leg"></div></div>` : ""}
+    </div>${p.largo ? '<div id="out"></div>' : ""}
+    ${(p.extra || []).map(x => `<div class="extra"><h3>${esc(x.titolo)}</h3>${x.html}</div>`).join("")}`;
+  const f = $("#f");
+  let timer;
+  const lancia = () => esegui(p, val);
+  p.params.forEach(x => {
+    if (x.tipo === "punto" || x.tipo === "poligono" || x.tipo === "faccette") return;
+    const l = document.createElement("label");
+    l.textContent = x.etichetta;
+    let inp;
+    if (x.tipo === "select") {
+      inp = document.createElement("select");
+      const opz = typeof x.opzioni === "string" ? (S.opzioni[x.opzioni.slice(1)] || [x.default]) : x.opzioni;
+      opz.forEach(o => { const v = typeof o === "object" ? o.value : o, t = typeof o === "object" ? o.label : o;
+        const op = document.createElement("option"); op.value = v; op.textContent = t; if (String(v) === String(x.default)) op.selected = true; inp.appendChild(op); });
+    } else if (x.tipo === "checkbox") {
+      inp = document.createElement("input"); inp.type = "checkbox"; inp.checked = !!x.default; l.className = "cb";
+      inp.addEventListener("change", () => { val[x.nome] = inp.checked; });
+      l.textContent = ""; l.appendChild(inp); l.appendChild(document.createTextNode(x.etichetta)); f.appendChild(l); return;
+    } else if (x.tipo === "range") {
+      inp = document.createElement("input"); inp.type = "range"; inp.min = x.min; inp.max = x.max; inp.step = x.step; inp.value = x.default;
+      l.textContent = `${x.etichetta}: ${x.default}`;
+      inp.addEventListener("input", () => { l.firstChild.textContent = `${x.etichetta}: ${inp.value}`; });
+    } else {
+      inp = document.createElement("input"); inp.type = x.tipo === "number" ? "number" : "text"; inp.value = x.default ?? "";
+      if (p.auto) inp.className = "grande";
+    }
+    inp.addEventListener("input", () => {
+      val[x.nome] = x.tipo === "number" || x.tipo === "range" ? Number(inp.value) : inp.value;
+      if (x.tipo === "range" && G.cerchio) G.cerchio.setRadius(Number(inp.value));
+      if (p.auto) { clearTimeout(timer); timer = setTimeout(lancia, 180); }
+    });
+    l.appendChild(inp); f.appendChild(l);
+    if (x.esempi) {
+      const e = document.createElement("div"); e.className = "esempi"; e.innerHTML = "Prova: ";
+      x.esempi.forEach(t => { const b = document.createElement("button"); b.type = "button"; b.textContent = t;
+        b.onclick = () => { inp.value = t; inp.dispatchEvent(new Event("input")); inp.focus(); }; e.appendChild(b); });
+      f.appendChild(e);
+    }
+  });
+  if (!p.auto) {
+    const b = document.createElement("button"); b.type = "submit"; b.className = "run"; b.textContent = "Esegui"; f.appendChild(b);
+  } else {
+    const s = document.createElement("span"); s.className = "maphint"; s.textContent = "La ricerca parte da sola mentre scrivi."; f.appendChild(s);
+  }
+  f.onsubmit = e => { e.preventDefault(); lancia(); };
+  $("#out").innerHTML = `<p class="vuoto">${p.auto ? "Scrivi nella casella…" : "Imposta i parametri e premi Esegui."}</p>`;
+  if (geo) mappaInput(p, val, lancia);
+  S.ctx = {val, lancia};
+  if (fac) $("#azzera").onclick = () => { val.filtri = {}; lancia(); };
+  if (p.auto) lancia();
+}
+
+async function esegui(p, val) {
+  const b = $("#f .run"); if (b) b.innerHTML = 'Esecuzione<span class="spin"></span>';
+  try {
+    const r = await fetch(`/api/esegui/${p.tab}/${p.id}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(val)});
+    const d = await r.json();
+    risultato(p, d);
+  } catch (e) { $("#out").innerHTML = `<div class="err">${esc(e)}</div>`; }
+  if (b) b.textContent = "Esegui";
+}
+
+function risultato(p, d) {
+  const o = $("#out");
+  if (d.errore) { o.innerHTML = `<div class="err"><b>Errore:</b> ${esc(d.errore)}</div>`; return; }
+  let h = `<div class="metriche">${(d.metriche || []).map(m => `<div class="met"><div class="v">${esc(fmt(m.valore))}</div><div class="l">${esc(m.etichetta)}</div>${m.nota ? `<div class="n">${esc(m.nota)}</div>` : ""}</div>`).join("")}
+    ${d.query ? `<div class="met tempo"><div class="v">${Math.round(d.ms)} ms</div><div class="l">tempo sul database</div></div>` : ""}</div>`;
+  if (d.evidenza) h += `<div class="evid"><b>EVIDENZA</b>${esc(d.evidenza)}</div>`;
+  if (d.imbuto) {
+    const max = Math.max(...d.imbuto.map(x => x.n), 1);
+    h += `<div class="imbuto"><h4>Come si restringe il campo (calcolato dalla stessa query)</h4>${d.imbuto.map(x =>
+      `<div class="ib"><span>${esc(x.label)}</span><div class="bar"><i style="width:${Math.max(0.4, 100 * x.n / max)}%"></i></div><b>${fmt(x.n)}</b></div>`).join("")}</div>`;
+  }
+  if (d.schede) {
+    h += `<div class="tab-t">Sospettati, ordinati per numero di indizi</div><div class="schede">${d.schede.map((x, i) => `
+      <div class="scheda ${i === 0 ? "top" : ""}"><h3>${esc(x.titolo)}<span>${esc(x.punteggio)} indizi</span></h3>
+        <div class="sub">${esc(x.sottotitolo)}</div>
+        <ul>${x.indizi.map(z => `<li class="${z.ok ? "ok" : "no"}">${esc(z.testo)}</li>`).join("")}</ul>
+        ${x.fascicolo ? `<div class="fasc"><div class="t">🔓 Fascicolo dalla collection cifrata (decifrato nell'app)</div><table>${Object.entries(x.fascicolo).map(([k, v]) => `<tr><td>${esc(k)}</td><td><b>${esc(v)}</b></td></tr>`).join("")}</table></div>`
+                      : `<div class="fasc"><div class="t">Fascicolo non presente nella collection cifrata</div></div>`}
+      </div>`).join("")}</div>`;
+  }
+  h += `<div class="tabelle">${(d.tabelle || []).map(tabella).join("")}</div>`;
+  if (d.documenti && d.documenti.length) h += `<div class="docs">${d.documenti.map(x => `<div><div class="tab-t">${esc(x.titolo)}</div>${x.nota ? `<div class="docs nota">${esc(x.nota)}</div>` : ""}<pre>${x.evidenzia ? jsonEvidenziato(x.doc, x.evidenzia) : jsonHtml(x.doc)}</pre></div>`).join("")}</div>`;
+  if (d.query) h += `<details open><summary>Query eseguita</summary><pre>${jsonHtml(d.query)}</pre></details>`;
+  o.innerHTML = h;
+  if (d.mappa && G.map) mappaOutput(d.mappa);
+  if (d.faccette && $("#facets")) faccette(d.faccette);
+}
+
+function faccette(gruppi) {
+  const {val, lancia} = S.ctx;
+  val.filtri = val.filtri || {};
+  $("#facets").innerHTML = gruppi.map(g => `<div class="fgr"><h5>${esc(g.titolo)}</h5>${g.valori.map(v =>
+    `<label class="${v.selezionato ? "on" : ""} ${v.n ? "" : "zero"}"><input type="checkbox" data-k="${esc(g.chiave)}" data-v="${esc(v.valore)}" ${v.selezionato ? "checked" : ""}>
+      <span>${esc(v.label)}</span><span class="cnt">${fmt(v.n)}</span></label>`).join("") || '<p class="vuoto" style="margin:0">nessun valore</p>'}</div>`).join("");
+  $("#facets").querySelectorAll("input").forEach(i => i.onchange = () => {
+    const k = i.dataset.k, v = i.dataset.v, cur = new Set(val.filtri[k] || []);
+    i.checked ? cur.add(v) : cur.delete(v);
+    val.filtri[k] = [...cur]; lancia();
+  });
+}
+
+function tabella(t) {
+  if (!t.righe || !t.righe.length) return `<div><div class="tab-t">${esc(t.titolo)}</div><div class="box"><p class="vuoto" style="margin:0">${esc(t.vuoto || "nessun risultato")}</p></div></div>`;
+  const cell = v => { let s = esc(fmt(v)); return s.replace(/«([^»]*)»/g, "<mark>$1</mark>"); };
+  return `<div><div class="tab-t">${esc(t.titolo)}</div><table><tr>${t.colonne.map(c => `<th>${esc(c)}</th>`).join("")}</tr>
+    ${t.righe.map(r => `<tr>${t.colonne.map(c => `<td>${cell(r[c])}</td>`).join("")}</tr>`).join("")}</table></div>`;
+}
+
+function jsonEvidenziato(o, chiavi) {
+  if (!o) return jsonHtml(o);
+  const corpo = obj => jsonHtml(obj).replace(/^\{\n/, "").replace(/\n\}$/, "");
+  const primo = {}, resto = {}, agg = {};
+  Object.keys(o).forEach(k => { if (k === "_id") primo[k] = o[k]; else if (chiavi.includes(k)) agg[k] = o[k]; else resto[k] = o[k]; });
+  const altri = Object.keys(resto).length > 0;
+  let h = "{\n";
+  if (Object.keys(primo).length) h += corpo(primo) + ",\n";
+  if (Object.keys(agg).length) h += `<span class="add">${corpo(agg)}${altri ? "," : ""}</span>`;
+  if (altri) h += corpo(resto);
+  return h + "\n}";
+}
+
+function jsonHtml(o) {
+  if (o === null || o === undefined) return '<span class="n">null</span>';
+  let s = esc(JSON.stringify(o, null, 2));
+  s = s.replace(/(&quot;[^&]*?&quot;)(\s*:)/g, '<span class="k">$1</span>$2');
+  s = s.replace(/\{\s*<span class="k">&quot;\$binary&quot;<\/span>:[\s\S]*?&quot;subType&quot;<\/span>: &quot;06&quot;\s*\}\s*\}/g,
+                m => `<span class="enc">${m.replace(/<[^>]+>/g, "")} ← cifrato</span>`);
+  return s;
+}
+
+// ---------------- mappa ----------------
+const G = {};
+function baseMap(el) {
+  if (G.map) { G.map.off(); G.map.stop(); G.map.remove(); G.map = null; }
+  const m = L.map(el, {preferCanvas: true, fadeAnimation: false, zoomAnimation: false, markerZoomAnimation: false});
+  const esri = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {maxZoom: 19, attribution: "Tiles © Esri"});
+  let errori = 0;
+  esri.on("tileerror", () => { if (++errori === 4) { m.removeLayer(esri); L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19, attribution: "© OpenStreetMap"}).addTo(m); } });
+  esri.addTo(m);
+  Object.assign(G, {map: m, input: L.layerGroup().addTo(m), output: L.layerGroup().addTo(m), cerchio: null, disegno: false});
+  m.setView([44.41, 8.93], 13);
+  return m;
+}
+
+function mappaInput(p, val, lancia) {
+  const m = baseMap("map");
+  const pp = p.params.find(x => x.tipo === "punto"), pr = p.params.find(x => x.tipo === "range"), pg = p.params.find(x => x.tipo === "poligono");
+  const ll = c => [c[1], c[0]];
+  const hint = [];
+  if (pp) {
+    const mk = L.marker(ll(val[pp.nome]), {draggable: true}).addTo(G.input).bindTooltip("Punto di riferimento");
+    if (pr) G.cerchio = L.circle(ll(val[pp.nome]), {radius: val[pr.nome], color: "#016BF8", weight: 2, fillOpacity: 0.06}).addTo(G.input);
+    const sposta = latlng => { val[pp.nome] = [latlng.lng, latlng.lat]; mk.setLatLng(latlng); if (G.cerchio) G.cerchio.setLatLng(latlng); };
+    mk.on("dragend", e => sposta(e.target.getLatLng()));
+    m.on("click", e => { if (!G.disegno) sposta(e.latlng); });
+    hint.push("Clicca sulla mappa (o trascina il segnaposto) per scegliere il punto.");
+    m.setView(ll(val[pp.nome]), pr ? zoomPer(val[pr.nome]) : 15);
+  }
+  if (pg) {
+    const poly = L.polygon(val[pg.nome].map(ll), {color: "#016BF8", weight: 2, fillOpacity: 0.06}).addTo(G.input);
+    let vertici = [], linea = null, punti = L.layerGroup().addTo(G.input);
+    const Ctl = L.Control.extend({onAdd() {
+      const d = L.DomUtil.create("div", "drawctl");
+      d.innerHTML = `<button type="button" class="primario" id="dis">✏️ Disegna una nuova area</button>
+        <div class="msg" id="dmsg" style="display:none">Clicca sulla mappa i vertici dell'area (almeno 3). Per chiudere clicca il primo punto o premi «Chiudi area».</div>
+        <button type="button" id="fine" style="display:none">✔ Chiudi area e cerca</button>
+        <button type="button" id="def">↺ Area predefinita</button>`;
+      L.DomEvent.disableClickPropagation(d);
+      return d;
+    }});
+    new Ctl({position: "topright"}).addTo(m);
+    const stato = on => {
+      G.disegno = on; $("#map").parentElement.classList.toggle("disegno", on);
+      $("#dis").classList.toggle("attivo", on); $("#dis").textContent = on ? "✏️ Disegno in corso…" : "✏️ Disegna una nuova area";
+      $("#dmsg").style.display = on ? "" : "none"; $("#fine").style.display = on ? "" : "none";
+    };
+    const fine = () => {
+      if (vertici.length < 3) { $("#dmsg").textContent = `Servono almeno 3 vertici (ora ${vertici.length}).`; return; }
+      stato(false); if (linea) G.input.removeLayer(linea); punti.clearLayers();
+      val[pg.nome] = vertici.map(v => [v.lng, v.lat]); poly.setLatLngs(vertici); lancia();
+    };
+    $("#dis").onclick = () => {
+      vertici = []; punti.clearLayers(); G.output.clearLayers(); poly.setLatLngs([]);
+      if (linea) G.input.removeLayer(linea);
+      linea = L.polyline([], {color: "#E0A800", weight: 3, dashArray: "6 4"}).addTo(G.input);
+      $("#dmsg").textContent = "Clicca sulla mappa i vertici dell'area (almeno 3). Per chiudere clicca il primo punto o premi «Chiudi area».";
+      stato(true);
+    };
+    $("#fine").onclick = fine;
+    $("#def").onclick = () => { stato(false); punti.clearLayers(); if (linea) G.input.removeLayer(linea);
+      val[pg.nome] = JSON.parse(JSON.stringify(pg.default)); poly.setLatLngs(val[pg.nome].map(ll)); m.fitBounds(poly.getBounds(), {padding: [30, 30]}); lancia(); };
+    m.on("click", e => {
+      if (!G.disegno) return;
+      if (vertici.length >= 3 && m.latLngToContainerPoint(vertici[0]).distanceTo(m.latLngToContainerPoint(e.latlng)) < 15) return fine();
+      vertici.push(e.latlng); linea.setLatLngs(vertici);
+      L.circleMarker(e.latlng, {radius: vertici.length === 1 ? 7 : 5, color: "#fff", weight: 2, fillColor: "#E0A800", fillOpacity: 1}).addTo(punti);
+      $("#dmsg").textContent = `Vertici: ${vertici.length}. ${vertici.length >= 3 ? "Clicca il primo punto o «Chiudi area» per terminare." : "Continua a cliccare."}`;
+    });
+    m.doubleClickZoom.disable();
+    hint.push("Area: usa i pulsanti in alto a destra sulla mappa.");
+    if (!pp) m.fitBounds(poly.getBounds(), {padding: [30, 30]});
+  }
+  $("#hint").textContent = hint.join(" ");
+}
+
+function zoomPer(r) { return r <= 300 ? 16 : r <= 700 ? 15 : r <= 1500 ? 14 : r <= 3000 ? 13 : 12; }
+
+function mappaOutput(mp) {
+  G.output.clearLayers();
+  const ll = c => [c[1], c[0]];
+  const b = [];
+  (mp.punti || []).forEach((p, i) => {
+    const pos = [p.lat, p.lon]; b.push(pos);
+    if (mp.numerati) L.marker(pos, {icon: L.divIcon({className: "", html: `<div class="numero">${i + 1}</div>`, iconSize: [22, 22]})}).addTo(G.output).bindTooltip(esc(p.label));
+    else L.circleMarker(pos, {radius: 5, color: "#fff", weight: 1, fillColor: p.colore || "#00684A", fillOpacity: 0.9}).addTo(G.output).bindTooltip(esc(p.label));
+  });
+  if (mp.centro && mp.etichettaCentro) {
+    L.marker(ll(mp.centro)).addTo(G.output).bindTooltip(esc(mp.etichettaCentro), {permanent: true, direction: "top"});
+    b.push(ll(mp.centro));
+  }
+  $("#leg").innerHTML = (mp.legenda || []).map(x => `<span><i style="background:${x.colore}"></i>${esc(x.label)}</span>`).join("");
+  if (mp.cerchio) { const bb = L.latLng(ll(mp.cerchio.centro)).toBounds(mp.cerchio.raggio * 2); b.push([bb.getNorth(), bb.getWest()], [bb.getSouth(), bb.getEast()]); }
+  if (mp.poligono) mp.poligono.forEach(c => b.push(ll(c)));
+  if (b.length && !G.disegno) G.map.fitBounds(b, {padding: [30, 30], maxZoom: 17});
+}
+</script>
+</body>
+</html>

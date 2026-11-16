@@ -1,0 +1,3 @@
+pymongo[encryption]>=4.19,<5
+fastapi>=0.110
+uvicorn>=0.29

@@ -1,0 +1,14 @@
+Demo Search, Geo e Queryable Encryption
+Copyright 2026 Michele Farinacci
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This project bundles third-party software:
+
+  Leaflet 1.9.4 (static/leaflet/)
+  Copyright (c) 2010-2023, Volodymyr Agafonkin
+  Copyright (c) 2010-2011, CloudMade
+  BSD 2-Clause License (see static/leaflet/LICENSE)
+
+Map tiles are loaded at runtime from Esri (World Street Map) or, as a fallback,
+from OpenStreetMap; they are subject to their providers' terms of use.

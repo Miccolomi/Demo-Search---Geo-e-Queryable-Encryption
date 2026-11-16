@@ -1,0 +1,23 @@
+# Ambiente Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Chiave master locale di Queryable Encryption: NON va mai pubblicata
+master-key.bin
+*.key
+
+# Variabili d'ambiente / credenziali
+.env
+.env.*
+
+# Output generati
+campioni/
+mappe/
+out_*.txt
+
+# Sistema
+.DS_Store
+.idea/
+.vscode/
